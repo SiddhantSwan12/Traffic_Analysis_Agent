@@ -121,6 +121,23 @@ class GroundPlaneCalibration(BaseCalibration):
         Y = t_scale * (self.f * math.cos(self.t) - p * math.sin(self.t))
         return X, Y
 
+    def to_image(self, X, Y):
+        """Ground (X, Y) metres -> image (x, y). Exact inverse of to_ground.
+
+        Solving p from Y:  p = f(h cos t - Y sin t) / (Y cos t + h sin t)
+        then x follows from the lateral scale at that row.
+        """
+        X = np.asarray(X, float)
+        Y = np.asarray(Y, float)
+        ct, st = math.cos(self.t), math.sin(self.t)
+        den = Y * ct + self.h * st
+        den = np.where(np.abs(den) < 1e-9, np.nan, den)
+        p = self.f * (self.h * ct - Y * st) / den
+        A = p * ct + self.f * st
+        A = np.where(np.abs(A) < 1e-9, np.nan, A)
+        x = self.cx + X * A / self.h
+        return x, p + self.cy
+
     def in_range(self, y):
         return self._A(y) > 1e-6
 

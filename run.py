@@ -240,6 +240,8 @@ def main():
         sys.exit(f"cannot open video: {cfg.video}")
     fps = probe.get(cv2.CAP_PROP_FPS) or 30.0
     n_total = int(probe.get(cv2.CAP_PROP_FRAME_COUNT))
+    VW = int(probe.get(cv2.CAP_PROP_FRAME_WIDTH))
+    VH = int(probe.get(cv2.CAP_PROP_FRAME_HEIGHT))
     probe.release()
 
     max_frames = args.max_frames
@@ -252,9 +254,11 @@ def main():
     if n_proc < n_total:
         print(f"  PREVIEW MODE: first {n_proc} frames ({n_proc/fps:.0f}s)")
 
+    tel0 = {}
     srt = tele.find_srt(cfg.video)
     if srt:
         ents = tele.parse_srt(srt)
+        tel0 = ents[0] if ents else {}
         print(f"  telemetry: {srt.name}, {len(ents)} entries "
               f"({'aligned' if len(ents) == n_total else 'will be padded'})")
 
@@ -270,9 +274,9 @@ def main():
             sys.exit("no raw tracks found - run without --from-tracks first")
         print(f"  reusing {len(tracks):,} raw track rows "
               f"({tracks['track_id'].nunique():,} ids)")
-        from vtrack.postprocess import process, save
-        final, report = process(tracks, fps, cfg)
-        save(final, report, paths)
+        from vtrack.analytics import analyze, save
+        final, report, cal = analyze(tracks, fps, VW, VH, tel0, cfg)
+        save(final, report, cal, paths)
     else:
         det_cache = None
         if args.from_detections:
@@ -292,9 +296,9 @@ def main():
         print(f"  raw tracks: {len(tracks):,} rows, "
               f"{tracks['track_id'].nunique():,} ids -> {paths['tracks'].name}")
 
-        from vtrack.postprocess import process, save
-        final, report = process(tracks, fps, cfg)
-        save(final, report, paths)
+        from vtrack.analytics import analyze, save
+        final, report, cal = analyze(tracks, fps, VW, VH, tel0, cfg)
+        save(final, report, cal, paths)
         print(f"  detect+track+post took {(time.time()-t0)/60:.1f} min")
 
     print("\n--- summary " + "-" * 46)

@@ -52,6 +52,46 @@ class TrackCfg:
 
 
 @dataclass
+class KinematicsCfg:
+    # Velocity from a centred temporal baseline. "centered_diff" is the
+    # endpoint difference the L2 spec asks for; "savgol" is the least-squares
+    # slope over the same span, which is ~1.7x less noisy because it uses every
+    # sample in the window rather than just the two ends.
+    velocity_method: str = "centered_diff"   # centered_diff | savgol
+    velocity_window_s: float = 0.47          # ~ +/-7 frames at 29.97 fps
+    acceleration_window_s: float = 0.87      # ~ +/-13 frames; wider than velocity
+
+    min_speed_for_heading_mps: float = 1.0   # below this, direction is noise
+    max_plausible_speed_mps: float = 55.0    # ~200 km/h; above = measurement failure
+    # Emergency braking on dry asphalt is about -8 m/s2. Beyond this bound a
+    # reading is a measurement failure (box flip, bad interpolation), not a
+    # vehicle. Such rows are nulled and flagged, never clamped into a
+    # believable-looking number.
+    max_plausible_accel_mps2: float = 10.0
+    # Acceleration is a second derivative, so it is far more sensitive to
+    # invented data than speed is. Once half the window is interpolated the
+    # result describes the interpolator, not the vehicle.
+    max_interp_fraction: float = 0.5
+
+    reference_car_length_m: float = 4.3
+    calibration: str = "auto"                # auto | homography | row_scale | none
+
+
+@dataclass
+class MotionCfg:
+    moving_speed_mps: float = 0.7            # ~2.5 km/h
+    parked_min_life_s: float = 3.0
+    parked_moving_frac: float = 0.05
+    parked_net_disp_m: float = 2.5
+    # Duration-INDEPENDENT test. A total-path-length budget cannot work: path
+    # length grows with track lifetime, so residual jitter alone accumulated
+    # 55-67 m over a 400 s stationary vehicle and made the condition
+    # unsatisfiable for exactly the parked cars it was meant to catch.
+    parked_window_s: float = 10.0
+    parked_window_disp_m: float = 3.0
+
+
+@dataclass
 class PostCfg:
     min_track_len: int = 15        # frames; kills flicker false positives
     min_track_hits: int = 8        # real detections (not interpolated)
@@ -100,6 +140,8 @@ class Config:
     name: str = "intersection"
     detect: DetectCfg = field(default_factory=DetectCfg)
     track: TrackCfg = field(default_factory=TrackCfg)
+    kinematics: KinematicsCfg = field(default_factory=KinematicsCfg)
+    motion: MotionCfg = field(default_factory=MotionCfg)
     post: PostCfg = field(default_factory=PostCfg)
     render: RenderCfg = field(default_factory=RenderCfg)
 
@@ -114,7 +156,8 @@ class Config:
         return {
             "raw":    o / f"{self.name}_detections.parquet",
             "tracks": o / f"{self.name}_tracks_raw.parquet",
-            "final":  o / f"{self.name}_tracks.parquet",
+            "final":  o / f"{self.name}_l2_tracks.parquet",
+            "calib":  o / f"{self.name}_calibration.json",
             "csv":    o / f"{self.name}_tracks.csv",
             "video":  o / f"{self.name}_annotated.mp4",
             "report": o / f"{self.name}_report.json",
