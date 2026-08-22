@@ -128,6 +128,8 @@ class RenderCfg:
     label_mode: str = "compact"
     font_scale: float = 0.36
     label_min_box_px: int = 26     # objects smaller than this get an id only
+    show_accel: bool = False       # append signed longitudinal accel to labels
+    dim_stopped: bool = True       # draw temporarily-stopped objects dimmer
     crf: int = 20
     encoder: str = "auto"          # auto | h264_nvenc | libx264
 

@@ -15,11 +15,18 @@ class CameraMotion:
         self.ds = max(1, int(downscale))
         self.max_corners = max_corners
         self._prev = None
+        # Quality of the most recent estimate, in 0..1. A low value means the
+        # affine fit could not be trusted and identity was substituted, so any
+        # apparent object motion that frame may really be camera motion.
+        self.quality = 0.0
+        self.inliers = 0
 
     def estimate(self, frame_bgr: np.ndarray, det_boxes: np.ndarray) -> np.ndarray:
         """Return a 2x3 affine mapping previous-frame coords to current, in
         full-resolution pixels. Identity when it cannot be estimated."""
         eye = np.eye(2, 3, dtype=np.float64)
+        self.quality = 0.0
+        self.inliers = 0
         g = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
         if self.ds > 1:
             g = cv2.resize(g, (g.shape[1] // self.ds, g.shape[0] // self.ds),
@@ -55,6 +62,13 @@ class CameraMotion:
                                              maxIters=800)
         if M is None or inl is None or int(inl.sum()) < 10:
             return eye
+        n_in = int(inl.sum())
+        ratio = n_in / max(len(a), 1)
+        # both a healthy inlier count and a healthy inlier ratio are needed:
+        # a handful of agreeing points is not a reliable global estimate
+        self.inliers = n_in
+        self.quality = float(np.clip(min(n_in / 120.0, 1.0) * min(ratio / 0.6, 1.0),
+                                     0.0, 1.0))
         M = M.astype(np.float64)
         M[:, 2] *= self.ds          # translation back to full resolution
         return M

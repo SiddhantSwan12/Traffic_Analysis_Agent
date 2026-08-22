@@ -41,6 +41,7 @@ def _interpolate_gaps(df: pd.DataFrame, max_gap: int) -> pd.DataFrame:
                 "cls_id": int(a["cls_id"]),
                 "cls_name": a["cls_name"],
                 "interpolated": True,
+                "camera_motion_quality": a.get("camera_motion_quality", np.nan),
             })
             for c in cols:
                 block[c] = a[c] + (b[c] - a[c]) * w

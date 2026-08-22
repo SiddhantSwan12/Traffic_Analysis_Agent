@@ -161,6 +161,7 @@ class Tracker:
         self.cmc = CameraMotion(cfg.cmc_downscale) if cfg.use_cmc else None
         self.m_per_px = m_per_px_hint
         self.frame_id = -1
+        self.cmc_quality = 1.0      # 1.0 when compensation is disabled
         Track._next_id = 1
 
     def _fused_cost(self, tracks, boxes, feats, modes):
@@ -202,6 +203,7 @@ class Tracker:
             t.predict()
         if self.cmc is not None:
             M = self.cmc.estimate(frame, boxes)
+            self.cmc_quality = float(self.cmc.quality)
             if not np.allclose(M, np.eye(2, 3)):
                 for t in self.tracks:
                     t.apply_cmc(M)

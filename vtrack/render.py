@@ -84,8 +84,14 @@ def _text_for(row, disp_id, mode, r, box_px):
         return str(disp_id)
     name = mode if r.label_mode == "full" else SHORT[mode]
     txt = f"{disp_id} {name}"
-    if r.show_speed and row.speed_kmh >= 5.0:
-        txt += f" {row.speed_kmh:.0f}"
+    spd = getattr(row, "speed_kmh", float("nan"))
+    # a null speed means "not measured"; printing 0 would assert something false
+    if r.show_speed and spd == spd and spd >= 5.0:
+        txt += f" {spd:.0f}"
+    if r.show_accel:
+        a = getattr(row, "longitudinal_acceleration_mps2", float("nan"))
+        if a == a and abs(a) >= 0.8:
+            txt += f" {a:+.1f}"
     return txt
 
 
@@ -127,12 +133,13 @@ def _label(img, occ, box, text, short, color, scale, pad=3):
                 return
 
 
-def _hud(img, frame_idx, fps, live_counts, seen_counts, n_parked, show_parked):
+def _hud(img, frame_idx, fps, live_counts, seen_counts, n_parked, show_parked,
+         calib="", n_stopped=0):
     h, w = img.shape[:2]
     lines = [m for m in MODES if seen_counts.get(m)]
     # 34 header + one row per mode + 30 for the footer note, which must sit
     # inside the panel rather than spilling onto the frame below it
-    panel_h = 34 + 18 * max(len(lines), 1) + 30
+    panel_h = 68 + 18 * max(len(lines), 1) + 32
     panel_w = 250
     ov = img[8:8 + panel_h, 8:8 + panel_w]
     cv2.rectangle(img, (8, 8), (8 + panel_w, 8 + panel_h), (18, 18, 18), -1)
@@ -158,6 +165,8 @@ def _hud(img, frame_idx, fps, live_counts, seen_counts, n_parked, show_parked):
     note = f"parked/static hidden: {n_parked}" if not show_parked else \
            f"parked/static shown: {n_parked}"
     cv2.putText(img, note, (18, y + 6), FONT, 0.36, (140, 140, 140), 1, cv2.LINE_AA)
+    cv2.putText(img, f"waiting now: {n_stopped}   calib: {calib}", (18, y + 24),
+                FONT, 0.34, (130, 130, 130), 1, cv2.LINE_AA)
 
 
 def render(video_path, df, out_path, fps, cfg, max_frames=None, progress=None):
@@ -175,6 +184,7 @@ def render(video_path, df, out_path, fps, cfg, max_frames=None, progress=None):
     use = use[use["display_id"].notna()]
     by_frame = {int(f): g for f, g in use.groupby("frame")}
     n_parked_tracks = int(df[df["parked"]]["track_id"].nunique())
+    calib_name = str(df["calibration_method"].iloc[0]) if "calibration_method" in df else "n/a"
 
     trails = defaultdict(lambda: deque(maxlen=r.trail_frames))
     last_seen = {}
@@ -195,8 +205,11 @@ def render(video_path, df, out_path, fps, cfg, max_frames=None, progress=None):
                 did = g["display_id"].to_numpy()
                 cxs = g["cx"].to_numpy()
                 cys = g["cy"].to_numpy()
-                for d, cx, cy in zip(did, cxs, cys):
-                    trails[int(d)].append((float(cx), float(cy)))
+                states = (g["motion_state"].to_numpy()
+                          if "motion_state" in g else np.array(["moving"] * len(g)))
+                for d, cx, cy, st in zip(did, cxs, cys, states):
+                    if st == "moving":
+                        trails[int(d)].append((float(cx), float(cy)))
                     last_seen[int(d)] = idx
 
             # trails first so boxes draw on top
@@ -219,7 +232,7 @@ def render(video_path, df, out_path, fps, cfg, max_frames=None, progress=None):
             if g is not None:
                 occ = np.zeros((-(-H // GRID), -(-W // GRID)), bool)
                 if r.show_hud:   # the HUD is painted last; do not waste labels under it
-                    occ[: 230 // GRID, : 250 // GRID] = True
+                    occ[: 250 // GRID, : 270 // GRID] = True
                 # bigger objects get first claim on label space
                 order = g.assign(_a=(g["x2"] - g["x1"]) * (g["y2"] - g["y1"])) \
                          .sort_values("_a", ascending=False)
@@ -233,6 +246,8 @@ def render(video_path, df, out_path, fps, cfg, max_frames=None, progress=None):
                     x1, y1 = int(row.x1), int(row.y1)
                     x2, y2 = int(row.x2), int(row.y2)
                     col = id_color(d)
+                    if r.dim_stopped and getattr(row, "motion_state", "") == "temporarily_stopped":
+                        col = tuple(int(c * 0.55) for c in col)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), col, r.box_thickness)
                     # thin mode-coloured cap so class reads at a glance even
                     # when the text label has been shortened away
@@ -242,8 +257,9 @@ def render(video_path, df, out_path, fps, cfg, max_frames=None, progress=None):
                            str(d), col, r.font_scale)
 
             if r.show_hud:
+                n_stop = int((g["motion_state"] == "temporarily_stopped").sum())                     if g is not None and "motion_state" in g else 0
                 _hud(frame, idx, fps, live, seen_counts, n_parked_tracks,
-                     r.show_parked)
+                     r.show_parked, calib_name, n_stop)
 
             pipe.write(frame)
             idx += 1

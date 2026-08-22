@@ -63,6 +63,8 @@ def analyze(tracks: pd.DataFrame, fps: float, W: int, H: int, telemetry: dict,
     if df.empty:
         raise RuntimeError("no tracks survived filtering - loosen min_track_len")
 
+    if "camera_motion_quality" not in df.columns:
+        df["camera_motion_quality"] = np.nan   # not recorded by an older cache
     df = _interpolate_gaps(df, p.max_gap_interp)
     df = _smooth(df, p.smooth_window)
     df["cx"] = 0.5 * (df["x1"] + df["x2"])
@@ -199,7 +201,7 @@ L2_COLUMNS = [
     "longitudinal_acceleration_mps2", "lateral_acceleration_mps2", "heading_deg",
     "estimated_length_m", "length_uncertainty_m", "length_measurement_count",
     "motion_state", "parked", "observed", "interpolated", "conf",
-    "calibration_method", "calibration_confidence",
+    "calibration_method", "calibration_confidence", "camera_motion_quality",
     "kinematics_valid", "kinematics_quality",
     "velocity_window_frames", "acceleration_window_frames",
     "interpolated_fraction_in_window",

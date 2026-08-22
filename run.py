@@ -151,7 +151,8 @@ def stage_detect_track(cfg, reader, det_cache: pd.DataFrame | None):
             boxes, scores, clss = boxes[keep], scores[keep], clss[keep]
 
         for tid, x1, y1, x2, y2, sc, cid, cname in trk.update(frame, boxes, scores, clss):
-            trk_rows.append((fi, tid, x1, y1, x2, y2, sc, cid, cname))
+            trk_rows.append((fi, tid, x1, y1, x2, y2, sc, cid, cname,
+                             trk.cmc_quality))
 
         prog(k + 1, f"tracks {len(trk.tracks):3d} gallery {len(trk.gallery):3d}")
     prog.done()
@@ -168,7 +169,8 @@ def stage_detect_track(cfg, reader, det_cache: pd.DataFrame | None):
         dets["cls_name"] = dets["cls_id"].map(names)
 
     tracks = pd.DataFrame(trk_rows, columns=[
-        "frame", "track_id", "x1", "y1", "x2", "y2", "conf", "cls_id", "cls_name"])
+        "frame", "track_id", "x1", "y1", "x2", "y2", "conf", "cls_id", "cls_name",
+        "camera_motion_quality"])
     return dets, tracks
 
 
