@@ -201,7 +201,24 @@ class Jobs:
         for ws in dead:
             self.leave(ws)
 
+    # Jobs are sandboxed to their own directory. A dashboard button must never
+    # be able to overwrite the analysis the dashboard is serving: a 20-second
+    # preview run writes the same filenames as a full run, and clicking it
+    # silently replaced a 6.5-minute result with a 20-second one.
+    JOB_OUTDIR = "output/_jobs"
+
+    def _sandbox(self, args: list[str]) -> list[str]:
+        out = [a for a in args]
+        if "--outdir" in out:
+            i = out.index("--outdir")
+            if i + 1 < len(out):
+                if not out[i + 1].startswith(self.JOB_OUTDIR):
+                    out[i + 1] = self.JOB_OUTDIR
+                return out
+        return out + ["--outdir", self.JOB_OUTDIR]
+
     async def run(self, args: list[str]):
+        args = self._sandbox(args)
         if self.current and self.current.get("state") == "running":
             await self.broadcast({"type": "error",
                                   "message": "a job is already running"})
@@ -239,7 +256,7 @@ async def ws_jobs(ws: WebSocket):
             msg = await ws.receive_json()
             if msg.get("type") == "run":
                 args = msg.get("args") or ["--video", "Dataset_Video/Intersection_1080p.MP4",
-                                           "--preview", "20"]
+                                           "--preview", "20", "--no-render"]
                 asyncio.create_task(JOBS.run([str(a) for a in args]))
             elif msg.get("type") == "ping":
                 await ws.send_json({"type": "pong"})

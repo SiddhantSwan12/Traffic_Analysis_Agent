@@ -70,14 +70,16 @@ export default function JobConsole() {
           <button
             disabled={busy}
             onClick={() => run(["--video", "Dataset_Video/Intersection_1080p.MP4",
-                                "--preview", "20", "--no-render"])}
+                                "--preview", "20", "--no-render",
+                                "--outdir", "output/_jobs"])}
           >
             20 s preview
           </button>
           <button
             disabled={busy}
             onClick={() => run(["--video", "Dataset_Video/Intersection_1080p.MP4",
-                                "--from-tracks", "--no-render"])}
+                                "--from-tracks", "--no-render",
+                                "--outdir", "output/_jobs"])}
           >
             re-run analytics
           </button>
