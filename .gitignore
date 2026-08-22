@@ -1,0 +1,17 @@
+# Source video and large binaries - never commit
+Dataset_Video/
+output/
+output_smoke/
+*.mp4
+*.MP4
+*.srt
+*.SRT
+*.parquet
+*.csv
+*.png
+*.jpg
+
+# Python
+__pycache__/
+*.pyc
+.venv/

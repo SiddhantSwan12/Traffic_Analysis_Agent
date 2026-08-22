@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aerial Road User Tracking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+  :root{
+    --ground:#EFF1F3;
+    --surface:#FFFFFF;
+    --surface-2:#E7EAEE;
+    --ink:#14181D;
+    --muted:#59636E;
+    --rule:#D3D9DF;
+    --accent:#1F5C8B;
+    --signal:#B15300;
+    --ok:#2B6B4F;
+    --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0E1216;
+      --surface:#161B21;
+      --surface-2:#1D242C;
+      --ink:#E4E9ED;
+      --muted:#95A1AC;
+      --rule:#2A333C;
+      --accent:#7CB8E2;
+      --signal:#E4913D;
+      --ok:#63BC93;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0E1216;
+    --surface:#161B21;
+    --surface-2:#1D242C;
+    --ink:#E4E9ED;
+    --muted:#95A1AC;
+    --rule:#2A333C;
+    --accent:#7CB8E2;
+    --signal:#E4913D;
+    --ok:#63BC93;
+  }
+
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.65;
+    margin:0;
+    padding:56px 24px 96px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  /* ---------- masthead ---------- */
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 14px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:2.55rem;
+    line-height:1.14;
+    letter-spacing:-.015em;
+    text-wrap:balance;
+    margin:0 0 14px;
+  }
+  .standfirst{
+    font-size:1.12rem;
+    color:var(--muted);
+    margin:0 0 28px;
+    text-wrap:balance;
+  }
+  .telemetry{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--muted);
+    border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);
+    padding:14px 0;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
+    gap:10px 28px;
+    margin:0 0 44px;
+  }
+  .telemetry b{color:var(--ink);font-weight:600;}
+
+  /* ---------- sections ---------- */
+  h2{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:1.42rem;
+    letter-spacing:-.01em;
+    text-wrap:balance;
+    margin:48px 0 4px;
+    padding-top:20px;
+    border-top:2px solid var(--ink);
+  }
+  h3{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:1.02rem;
+    margin:30px 0 6px;
+    color:var(--ink);
+  }
+  p{margin:0 0 15px;}
+  ul,ol{margin:0 0 15px;padding-left:22px;}
+  li{margin-bottom:7px;}
+  strong{font-weight:600;}
+  code{
+    font-family:var(--mono);
+    font-size:.875em;
+    background:var(--surface-2);
+    padding:1px 5px;
+    border-radius:3px;
+  }
+  a{color:var(--accent);}
+
+  /* ---------- stat row ---------- */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin:22px 0 26px;
+  }
+  .stat{background:var(--surface);padding:16px 18px;}
+  .stat .n{
+    font-family:var(--mono);
+    font-variant-numeric:tabular-nums;
+    font-size:1.6rem;
+    font-weight:600;
+    line-height:1.15;
+    display:block;
+  }
+  .stat .k{
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:5px;
+    display:block;
+  }
+
+  /* ---------- tables ---------- */
+  .scroll{overflow-x:auto;margin:0 0 22px;}
+  table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:14.5px;
+    background:var(--surface);
+  }
+  caption{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+    color:var(--muted);
+    text-align:left;
+    padding:0 0 8px;
+  }
+  th,td{
+    border:1px solid var(--rule);
+    padding:8px 12px;
+    text-align:left;
+    vertical-align:top;
+  }
+  th{
+    background:var(--surface-2);
+    font-weight:600;
+    font-size:13px;
+  }
+  td.num,th.num{
+    text-align:right;
+    font-family:var(--mono);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .chip{
+    display:inline-block;
+    width:10px;height:10px;
+    border-radius:2px;
+    margin-right:7px;
+    vertical-align:baseline;
+  }
+
+  /* ---------- callout ---------- */
+  .note{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-left:3px solid var(--signal);
+    padding:15px 18px;
+    margin:22px 0;
+  }
+  .note p:last-child{margin-bottom:0;}
+  .note .lbl{
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--signal);
+    display:block;
+    margin-bottom:6px;
+  }
+
+  pre{
+    font-family:var(--mono);
+    font-size:13px;
+    background:var(--surface);
+    border:1px solid var(--rule);
+    padding:14px 16px;
+    overflow-x:auto;
+    line-height:1.5;
+    margin:0 0 22px;
+  }
+  footer{
+    margin-top:56px;
+    padding-top:18px;
+    border-top:1px solid var(--rule);
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--muted);
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">FlytBase Visual Hackathon &middot; Technical Write-Up</p>
+  <h1>Detection &amp; Tracking of Road Users from Aerial Video</h1>
+  <p class="standfirst">A four-stage pipeline that detects every road user in drone footage, classifies it into seven transport modes, holds a stable identity through occlusion and crossing paths, and suppresses stationary vehicles.</p>
+
+  <div class="telemetry">
+    <span>Dataset &nbsp;<b>Intersection_1080p</b></span>
+    <span>Frames &nbsp;<b>11,971 @ 29.97 fps</b></span>
+    <span>Duration &nbsp;<b>6 min 39 s</b></span>
+    <span>Resolution &nbsp;<b>1920 &times; 1080</b></span>
+    <span>Altitude &nbsp;<b>~70 m AGL</b></span>
+    <span>Gimbal &nbsp;<b>&minus;63&deg; oblique</b></span>
+  </div>
+
+  <h2>Objective</h2>
+  <p>Process drone-captured traffic video and produce an annotated output plus structured per-frame data. The brief set four requirements, all of which had to hold simultaneously:</p>
+  <ol>
+    <li>Classify every road user into one of seven modes — car, LGV, HGV, bus, truck, motorcycle, pedestrian.</li>
+    <li>Hold a stable identity through occlusion, crossing paths, and long dwell times.</li>
+    <li>Exclude stationary vehicles from the output.</li>
+    <li>Draw motion trails for moving objects and a persistent visible ID on each.</li>
+  </ol>
+
+  <h2>Results</h2>
+
+  <div class="stats">
+    <div class="stat"><span class="n">988</span><span class="k">Road users</span></div>
+    <div class="stat"><span class="n">942</span><span class="k">Moving</span></div>
+    <div class="stat"><span class="n">46</span><span class="k">Parked</span></div>
+    <div class="stat"><span class="n">49.9<small>s</small></span><span class="k">Median track</span></div>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <caption>Unique road users by mode, moving objects only</caption>
+      <thead>
+        <tr><th>Mode</th><th class="num">Unique</th><th>Derived from</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="chip" style="background:#8CFF5A"></span>Motorcycle</td><td class="num">469</td><td>motor, bicycle, tricycle, awning-tricycle</td></tr>
+        <tr><td><span class="chip" style="background:#FFDC50"></span>Pedestrian</td><td class="num">232</td><td>pedestrian, people</td></tr>
+        <tr><td><span class="chip" style="background:#3CAAFF"></span>Car</td><td class="num">210</td><td>car, &le; 6.2 m</td></tr>
+        <tr><td><span class="chip" style="background:#DC6EFF"></span>LGV</td><td class="num">17</td><td>van, or car &gt; 6.2 m</td></tr>
+        <tr><td><span class="chip" style="background:#FF8246"></span>Truck</td><td class="num">12</td><td>truck &le; 9.5 m</td></tr>
+        <tr><td><span class="chip" style="background:#EB4628"></span>HGV</td><td class="num">1</td><td>truck &gt; 9.5 m</td></tr>
+        <tr><td><span class="chip" style="background:#F0F03C"></span>Bus</td><td class="num">1</td><td>bus &ge; 7.0 m</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The output CSV carries <strong>2,005,350 rows</strong> — one per object per frame — of which 76,634 (3.8%) were reconstructed by interpolation across short occlusions. Median track lifetime is 49.9 s and the 90th percentile is 226.7 s, meaning identities routinely survive several minutes of continuous traffic.</p>
+
+  <h2>Pipeline architecture</h2>
+  <p>Four stages, each caching its output to disk so any stage can be re-tuned without repeating the ones before it. Re-running tracking skips detection entirely; re-rendering skips both.</p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Stage</th><th>Function</th><th class="num">Runtime</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>1. Detect</strong></td><td>Batched tiled YOLO inference, every frame</td><td class="num">17 min</td></tr>
+        <tr><td><strong>2. Track</strong></td><td>Kalman + motion compensation + appearance association</td><td class="num">included</td></tr>
+        <tr><td><strong>3. Post-process</strong></td><td>Class voting, metric calibration, speed, parked detection</td><td class="num">1 min</td></tr>
+        <tr><td><strong>4. Render</strong></td><td>Annotated H.264, encoded on GPU</td><td class="num">9 min</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Total wall-clock: about 27 minutes for 6 min 39 s of 1080p footage, on a single RTX 5060 laptop GPU.</p>
+
+  <h2>Detection</h2>
+  <p>The detector is a VisDrone-finetuned YOLOv8-m. At 70 m altitude, objects occupy 11–70 pixels, so a single full-frame pass loses most of them. Two decisions drive detection quality:</p>
+
+  <h3>Every frame is processed</h3>
+  <p>An earlier approach sampled every fifth frame and held the previous boxes in between, which produced visible lag and flicker. More importantly, it starved the tracker: association quality depends on dense temporal sampling far more than on raw detector strength. Processing all 11,971 frames removed both problems.</p>
+
+  <h3>Tiles are batched, and deduplicated by geometry</h3>
+  <p>Each frame is cut into eight 640-pixel tiles with 200 pixels of overlap, and all eight are pushed through the network in a <em>single</em> batched forward pass rather than sequentially. Duplicate detections in overlap regions are not removed by non-maximum suppression heuristics. Instead each tile owns an exclusive <em>core</em> region, taken as the midpoints of consecutive overlaps, and a detection is kept only from the tile whose core contains its centre.</p>
+  <p>Because the overlap is larger than the biggest object in the scene, an object whose centre falls in a core is <em>provably</em> contained whole within that tile. The cores partition the frame exactly once — a property asserted in the test suite. Cross-tile duplicates therefore cannot occur by construction.</p>
+  <p>Detector confidence is set deliberately low, at 0.15. Recall is cheap and the tracker is the real filter; weak detections feed the second association stage, which is what keeps a partially occluded vehicle alive.</p>
+
+  <h2>Classification into seven modes</h2>
+  <p>The detector emits VisDrone's ten labels, which do not match the seven required modes. Pedestrian and vehicle categories map directly. LGV and HGV, however, are <em>weight</em> classes that no detector can read from appearance in an overhead view — they must be inferred from physical size.</p>
+
+  <h3>Calibrating pixels to metres</h3>
+  <p>Metres-per-pixel is recovered from the apparent size of cars, whose real length is known to be about 4.3 m. Because the gimbal sits at &minus;63&deg;, the view is oblique and scale varies down the frame, so a single global scalar would be wrong. The system fits apparent car length against image row and inverts it, producing a scale that varies with position.</p>
+  <p>The length estimate uses <code>max(width, height)</code> of the axis-aligned box. This is deliberate: for a 4.3 &times; 1.8 m rectangle, that quantity stays within roughly 1% of 4.3 m at <em>every</em> rotation angle, which makes it an unusually stable ruler regardless of which way a vehicle is pointing.</p>
+  <p>On this dataset the fit used 481,181 car observations and resolved to 0.128 m/px at the top of the frame and 0.070 m/px at the bottom — a clean perspective gradient consistent with the recorded gimbal angle. The same model yields speed in km/h.</p>
+
+  <h3>Class is decided per track, not per frame</h3>
+  <p>Each track accumulates a confidence-weighted vote across its entire history, and the winning mode is applied to every frame of that track. This eliminates the label flickering between car, van and truck that per-frame classification produces, and it makes the size refinement far more reliable, since it operates on a track's median length rather than one noisy measurement.</p>
+
+  <h2>Tracking</h2>
+  <p>The tracker is implemented directly rather than delegated to an off-the-shelf library, which gave full control over the three identity requirements and avoided the API churn that had previously cost time.</p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Requirement</th><th>Mechanism</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Through occlusion</strong></td>
+          <td>Unmatched tracks continue to be Kalman-predicted and stay eligible for matching for 90 frames. Beyond that they move to a long-term gallery, kept for 20 s and recovered on appearance plus a spatial gate. Gaps of 30 frames or fewer are filled by interpolation so boxes never blink.</td>
+        </tr>
+        <tr>
+          <td><strong>Through crossing paths</strong></td>
+          <td>Association fuses IoU with a 124-dimension colour and layout descriptor, updated per track, plus a soft penalty for matching across transport modes. Two vehicles that overlap for several frames remain separable by appearance when geometry alone is ambiguous.</td>
+        </tr>
+        <tr>
+          <td><strong>Through long dwell</strong></td>
+          <td>No special case is needed. A stopped vehicle is still detected every frame, so it stays matched by overlap while its estimated velocity decays to zero. No timeout applies while it remains visible.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Camera-motion compensation</h3>
+  <p>Even in a stationary hover the gimbal continuously micro-corrects. Left uncompensated, the Kalman filter absorbs that drift as genuine object velocity and mispredicts every box in the frame simultaneously — the single largest source of identity switches in dense overhead scenes. Each frame, a RANSAC affine transform is fitted to background optical flow with all detections masked out, and every track state is warped by it.</p>
+
+  <h2>Suppressing stationary vehicles</h2>
+  <p>A track is classified as parked, and hidden, only when all four conditions hold at once: it has existed for at least 3 s, exceeded 0.7 m/s in fewer than 5% of its frames, has net displacement under 2.5 m, and never covered more than 3 m within any sliding 10-second window.</p>
+  <p>Requiring all four is what separates <em>parked</em> from <em>waiting</em>. A vehicle halted at a signal for 90 s still travels a long way before and after the stop, so it stays visible with its identity intact — which the brief explicitly requires.</p>
+  <p>This also removes static false positives automatically. A detector hallucinating vehicles on a building facade produces perfectly stationary tracks, which satisfy all four conditions and disappear. The earlier approach used a hand-drawn exclusion rectangle for this, which had to be recalibrated for every camera angle and, on inspection, was deleting real vehicles travelling on a road inside its bounds. No manual mask is used anywhere in the current system.</p>
+
+  <h2>Validation</h2>
+  <p>A synthetic test suite of 30 checks runs without a GPU or the source video. It constructs a scene containing two objects crossing head-on at nearly the same image row, an object hidden for 21 frames, an object hidden for 121 frames that reappears roughly 600 px away, a parked object, and a static false positive — then asserts one stable identity per object, correct parked flags, plausible speeds, and that the tile cores partition the frame exactly once.</p>
+  <p>Validation caught two defects that would otherwise have shipped:</p>
+
+  <div class="note">
+    <span class="lbl">Defect 1 &mdash; rectified jitter read as motion</span>
+    <p>Speed was computed as the mean of frame-to-frame displacement magnitudes. Box jitter is zero-mean, but taking the magnitude <em>before</em> averaging rectifies that noise into a positive bias, so genuinely static objects appeared to move at around 4 km/h and leaked past the parked filter. Speed is now measured as displacement across a &plusmn;7-frame window, which cancels the noise instead of accumulating it.</p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Defect 2 &mdash; a duration-dependent threshold</span>
+    <p>The parked test required total path length below 6 m. Path length grows with track lifetime, so residual sub-pixel jitter accumulated to 55&ndash;67 m across a 400-second track, making the condition impossible for any long-lived parked vehicle to satisfy. Eight cars that never moved more than 1.1 m across the entire video were being drawn as moving traffic. The criterion was replaced with maximum displacement over a sliding 10-second window, which is independent of track duration.</p>
+  </div>
+
+  <p>Both were found by inspecting per-track statistics and rendered frames rather than trusting the summary counts, which looked plausible in both cases.</p>
+
+  <h2>Outputs</h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>*_annotated.mp4</code></td><td>1080p H.264: boxes, persistent IDs, mode, speed, motion trails, live HUD</td></tr>
+        <tr><td><code>*_tracks.csv</code></td><td>Per object per frame: ID, mode, box, centre, km/h, length in metres, parked and interpolated flags</td></tr>
+        <tr><td><code>*_report.json</code></td><td>Unique road users per mode, track-duration statistics, scale calibration</td></tr>
+        <tr><td><code>*_detections.parquet</code></td><td>Raw detections, cached for re-tuning without re-running inference</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Rendering pipes raw frames directly into ffmpeg over stdin and encodes with <code>h264_nvenc</code> on the GPU, so no multi-gigabyte intermediate file is ever written to disk.</p>
+
+  <h2>Reproducing the run</h2>
+<pre># 20-second preview, to judge quality quickly
+python run.py --video Dataset_Video/Intersection_1080p.MP4 --preview 20
+
+# full pass
+python run.py --video Dataset_Video/Intersection_1080p.MP4
+
+# re-tune tracking without re-running detection
+python run.py --video Dataset_Video/Intersection_1080p.MP4 --from-detections
+
+# re-render only
+python run.py --video Dataset_Video/Intersection_1080p.MP4 --render-only</pre>
+
+  <h2>Limitations and next steps</h2>
+  <ul>
+    <li><strong>Motorcycle dominance.</strong> Two-wheelers account for 469 of 942 moving road users. This is plausible for the location, but VisDrone's <code>motor</code> class is broad and no ground truth was available to confirm the split.</li>
+    <li><strong>Residual slow tracks.</strong> Roughly 24 tracks, about 2.5%, sit near the parked boundary. Tightening the thresholds further would begin hiding genuinely waiting vehicles, which is the more damaging error under this brief.</li>
+    <li><strong>No quantitative accuracy figures.</strong> The dataset ships without annotations, so MOTA, IDF1 and classification accuracy cannot be reported. All validation is synthetic or visual.</li>
+    <li><strong>Second video pending.</strong> The pipeline requires no per-camera calibration, so the Multi_Road sequence runs with a single command change once its 1080p export is available.</li>
+  </ul>
+
+  <footer>
+    Pipeline: batched tiled YOLOv8-m (VisDrone) &rarr; Kalman + camera-motion compensation + appearance association &rarr; track-level classification and motion analysis &rarr; GPU-encoded annotated video. Hardware: NVIDIA RTX 5060 Laptop, 8 GB.
+  </footer>
+
+</div>
+
+</body>
+</html>
