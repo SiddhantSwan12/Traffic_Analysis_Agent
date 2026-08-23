@@ -163,6 +163,12 @@ def insight(key: str):
     return JSONResponse({key: STORE.insights[key]})
 
 
+@app.get("/api/reasoning")
+def reasoning():
+    _guard()
+    return JSONResponse(STORE.reasoning)
+
+
 @app.get("/api/flow")
 def flow_all():
     _guard()

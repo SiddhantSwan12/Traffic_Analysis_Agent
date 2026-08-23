@@ -62,7 +62,8 @@ class Store:
         import sys
         sys.path.insert(0, str(ROOT))
         from vtrack import (telemetry as tele, network as netmod,
-                            aggregate as agg, trafficflow as tflow)
+                            aggregate as agg, trafficflow as tflow,
+                            reasoning as rsn)
         from vtrack.georef import GeoReference
 
         cap = cv2.VideoCapture(str(self.video_path))
@@ -84,6 +85,7 @@ class Store:
         self.net = netmod.build(self.moving, self.geo, frame_wh=(self.W, self.H))
         self._build_insights(agg, netmod)
         self._build_flow(tflow)
+        self.reasoning = rsn.analyse(df, self.net, self.fps)
         self.ready = True
 
     # ------------------------------------------------- per-frame overlay index
