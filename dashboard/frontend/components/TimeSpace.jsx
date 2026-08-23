@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getJSON, MODE_COLOR } from "@/lib/api";
+import { getJSON } from "@/lib/api";
+import { MODE_COLOR, SPEED_STOPS, CHART } from "@/lib/viz";
 
 /**
  * Time-space diagram: time on x, distance along the corridor on y, one
@@ -17,11 +18,6 @@ import { getJSON, MODE_COLOR } from "@/lib/api";
  * polylines of a few hundred points each is tens of thousands of segments, and
  * an SVG node per segment would make the page unusable.
  */
-const SPEED_STOPS = [
-  [0, "#c1121f"], [10, "#e85d04"], [20, "#ffba08"],
-  [30, "#90be6d"], [45, "#43aa8b"],
-];
-
 function speedColor(v) {
   if (v == null || !isFinite(v)) return "#5a6577";
   let c = SPEED_STOPS[0][1];

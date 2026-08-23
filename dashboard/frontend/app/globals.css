@@ -219,3 +219,64 @@ select {
 .verdict.unk { background: var(--panel-2); color: var(--muted); }
 .row b em { font-style: normal; color: var(--muted); font-size: 10.5px; font-weight: 400; }
 .chip { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+
+/* ------------------------------------------------------------ viz polish */
+.insights { gap: 16px; }
+.panel {
+  background: linear-gradient(180deg, #181e28 0%, var(--panel) 100%);
+  border-color: #232b38;
+  box-shadow: 0 1px 0 rgba(255,255,255,.03) inset;
+}
+.panel header { padding: 13px 16px 11px; background: rgba(255,255,255,.015); }
+.panel h3 { font-size: 13.5px; letter-spacing: -.01em; }
+.panel header p { font-size: 11.5px; line-height: 1.5; max-width: 62ch; }
+.panel-body { padding: 14px 16px 16px; }
+
+/* headline numbers: the value is the chart */
+.tiles {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 12px; margin-bottom: 2px;
+}
+.tile {
+  background: linear-gradient(180deg, #181e28 0%, var(--panel) 100%);
+  border: 1px solid #232b38; border-radius: 10px; padding: 14px 16px;
+}
+.tile b {
+  display: block; font-family: var(--mono); font-size: 27px; line-height: 1.1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.tile b i { font-style: normal; font-size: 14px; color: var(--muted); margin-left: 2px; }
+.tile span {
+  display: block; margin-top: 5px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted);
+}
+.tile em { display: block; margin-top: 3px; font-style: normal; font-size: 11px; color: #6b7688; }
+
+/* legends and ramps carry identity so colour is never the only channel */
+.legend { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--muted); }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.legend i { width: 11px; height: 11px; border-radius: 3px; }
+
+.ramp { display: flex; align-items: center; gap: 3px; margin-top: 12px; font-size: 10.5px; color: var(--muted); }
+.ramp i { width: 26px; height: 9px; border-radius: 2px; }
+.ramp span:first-child { margin-right: 4px; }
+.ramp span:last-child { margin-left: 4px; }
+
+.od th, .od td { border-color: #232b38; padding: 8px 12px; }
+.od th { background: #1b222d; font-size: 11px; letter-spacing: .03em; }
+.od td { font-variant-numeric: tabular-nums; font-weight: 500; }
+
+.recharts-cartesian-axis-line, .recharts-cartesian-axis-tick-line { stroke: #2a3441; }
+.recharts-legend-item-text { color: var(--muted) !important; }
+
+/* The tile row is not a .panel, so .panel.wide never applied to it and it was
+   laid out as an ordinary grid item two columns wide. */
+.tiles.wide { grid-column: 1 / -1; }
+/* Panels have very different natural heights; stretching them to the tallest in
+   each row left large empty regions. */
+.insights { align-items: start; }
+
+/* a swatch standing for "many colours", used where the bars are mode-coloured */
+.legend i.split {
+  background: linear-gradient(90deg, #3987e5 0 33%, #d95926 33% 66%, #199e70 66% 100%);
+}

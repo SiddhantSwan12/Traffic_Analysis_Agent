@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getJSON } from "@/lib/api";
+import { TURN_COLOR } from "@/lib/viz";
 
-const TURN_COLOR = { through: "#4aa3ff", left: "#c778ff", right: "#ffa04a", "u-turn": "#ff5a5a" };
 
 /**
  * Map-native view of the L4 outputs.

@@ -1,15 +1,8 @@
-export const MODES = ["pedestrian", "motorcycle", "car", "LGV", "truck", "HGV", "bus"];
-
-// Matches vtrack/taxonomy.py MODE_COLOR, converted BGR -> CSS rgb.
-export const MODE_COLOR = {
-  pedestrian: "#ffdc50",
-  motorcycle: "#8cff5a",
-  car: "#3caaff",
-  LGV: "#dc6eff",
-  truck: "#ff8246",
-  HGV: "#eb4628",
-  bus: "#f0f03c",
-};
+// Re-exported from the validated palette so the overlay, the map and every
+// chart paint a class the same colour. The previous set was picked to match the
+// baked-in video renderer and failed colourblind separation: motorcycle against
+// pedestrian scored dE 1.6 under deuteranopia.
+export { MODES, MODE_COLOR } from "./viz";
 
 export const STATE = ["moving", "temporarily_stopped", "parked", "unknown"];
 

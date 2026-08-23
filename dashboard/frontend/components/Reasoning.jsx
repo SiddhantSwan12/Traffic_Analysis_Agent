@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getJSON, MODE_COLOR } from "@/lib/api";
+import { getJSON } from "@/lib/api";
+import { MODE_COLOR } from "@/lib/viz";
 
 /**
  * L5 findings, each shown with the evidence it was reasoned from.
