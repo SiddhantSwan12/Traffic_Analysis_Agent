@@ -6,6 +6,7 @@ import VideoStage from "@/components/VideoStage";
 import Insights from "@/components/Insights";
 import JobConsole from "@/components/JobConsole";
 import TimeSpace from "@/components/TimeSpace";
+import Reasoning from "@/components/Reasoning";
 import { getJSON, MODES, MODE_COLOR } from "@/lib/api";
 
 // Leaflet reaches for `window` at import time, so the map never server-renders.
@@ -14,7 +15,7 @@ const MapPanel = dynamic(() => import("@/components/MapPanel"), {
   loading: () => <div className="mapload">loading map…</div>,
 });
 
-const TABS = ["Video", "Map", "Insights", "Flow", "Pipeline"];
+const TABS = ["Video", "Map", "Insights", "Flow", "Reasoning", "Pipeline"];
 
 export default function Page() {
   const [meta, setMeta] = useState(null);
@@ -156,6 +157,7 @@ export default function Page() {
               />
             ) : <div className="mapload">loading flow analysis…</div>
           )}
+          {tab === "Reasoning" && <Reasoning />}
           {tab === "Pipeline" && <JobConsole />}
         </div>
       </div>

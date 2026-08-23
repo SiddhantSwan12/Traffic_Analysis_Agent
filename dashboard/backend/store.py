@@ -63,7 +63,7 @@ class Store:
         sys.path.insert(0, str(ROOT))
         from vtrack import (telemetry as tele, network as netmod,
                             aggregate as agg, trafficflow as tflow,
-                            reasoning as rsn)
+                            reasoning as rsn, reasoning2 as rsn2)
         from vtrack.georef import GeoReference
 
         cap = cv2.VideoCapture(str(self.video_path))
@@ -86,6 +86,7 @@ class Store:
         self._build_insights(agg, netmod)
         self._build_flow(tflow)
         self.reasoning = rsn.analyse(df, self.net, self.fps)
+        self._upgrade_reasoning(rsn2, tflow, df)
         self.ready = True
 
     # ------------------------------------------------- per-frame overlay index
@@ -196,6 +197,42 @@ class Store:
         lanes = tflow.assign_lanes(mv, N, fps)
         lc = tflow.lane_change_summary(mv, lanes, fps)
         self.flow["lane_changes"] = json.loads(lc.to_json(orient="records")) if len(lc) else []
+
+    def _upgrade_reasoning(self, rsn2, tflow, df):
+        """Overlay the stronger estimators on top of the first-pass reasoning.
+
+        Both are kept. The v1 numbers are what a reader would get from the
+        obvious method, and showing them beside the standard estimator is how
+        the difference becomes checkable -- on this data the jump condition and
+        the geometric edge disagree about whether the jam moves at all.
+        """
+        mv = self.moving
+        from vtrack.aggregate import od_summary
+        od = od_summary(self.net)
+        pairs = [(r.origin, r.destination) for r in od.itertuples()][:3]
+
+        shock, periodic = {}, {}
+        for (o, d) in pairs:
+            key = f"{o}->{d}"
+            e = tflow.edie(mv, self.net, o, d, self.fps)
+            if len(e):
+                shock[key] = rsn2.shockwave_rankine_hugoniot(e)
+            periodic[key] = rsn2.signal_periodicity(mv, self.net, o, d, self.fps)
+
+        self.reasoning["shockwave_rh"] = shock
+        self.reasoning["signal_periodicity"] = periodic
+        self.reasoning["signal_complementarity"] =             rsn2.signal_complementarity(mv, self.net, pairs, self.fps)
+        ls = rsn2.lane_structure(mv, self.net)
+        self.reasoning["lane_structure"] = (
+            json.loads(ls.to_json(orient="records")) if len(ls) else [])
+        if len(pairs) >= 2:
+            major = pairs[0]
+            minor = next(((o, d) for (o, d) in pairs[1:] if o != major[0]), None)
+            if minor:
+                self.reasoning["critical_gap"] = {
+                    "pair": f"{minor[0]}->{minor[1]} vs {major[0]}->{major[1]}",
+                    **rsn2.gap_acceptance_by_mode(mv, self.net, minor, major, self.fps),
+                }
 
     # ------------------------------------------------------------------ misc
     def meta(self) -> Meta:
