@@ -163,6 +163,24 @@ def insight(key: str):
     return JSONResponse({key: STORE.insights[key]})
 
 
+@app.get("/api/flow")
+def flow_all():
+    _guard()
+    # the time-space payload is large; this returns everything BUT it
+    return JSONResponse({k: v for k, v in STORE.flow.items() if k != "time_space"})
+
+
+@app.get("/api/flow/timespace/{corridor}")
+def timespace(corridor: str):
+    _guard()
+    ts = STORE.flow.get("time_space", {}).get(corridor)
+    if ts is None:
+        raise HTTPException(404, f"no corridor '{corridor}'")
+    return Response(content=json.dumps(ts, separators=(",", ":")),
+                    media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
 @app.get("/api/map/{kind}")
 def geojson(kind: str):
     _guard()

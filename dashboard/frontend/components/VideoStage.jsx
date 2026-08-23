@@ -16,7 +16,7 @@ const TRAIL_FRAMES = 60;
  * loop. That is deliberate — a timer would drift against the video clock, and
  * the video element is the only authority on where playback actually is.
  */
-export default function VideoStage({ meta, filters, onSelect, selectedId }) {
+export default function VideoStage({ meta, filters, onSelect, selectedId, seekTo }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const cacheRef = useRef(null);
@@ -136,6 +136,14 @@ export default function VideoStage({ meta, filters, onSelect, selectedId }) {
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, [draw]);
+
+  // clicking a trajectory in the time-space diagram jumps playback to that
+  // moment, which is the point of having both views in one tool
+  useEffect(() => {
+    if (!seekTo || !videoRef.current) return;
+    videoRef.current.currentTime = Math.max(0, Math.min(meta.duration_s, seekTo.t));
+    trailsRef.current.clear();
+  }, [seekTo, meta]);
 
   const seek = (sec) => {
     const v = videoRef.current;

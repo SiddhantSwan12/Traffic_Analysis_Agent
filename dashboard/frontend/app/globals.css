@@ -160,3 +160,28 @@ select {
   font-family: var(--mono); font-size: 11.5px; line-height: 1.55;
   color: #9fb3c8; white-space: pre-wrap;
 }
+
+/* ------------------------------------------------------- time-space diagram */
+.ts-wrap { position: relative; width: 100%; }
+.ts-wrap canvas { display: block; cursor: crosshair; border-radius: 6px; background: #0a0e14; }
+.ts-load {
+  position: absolute; inset: 0; display: grid; place-content: center;
+  color: var(--muted); font-family: var(--mono); font-size: 12px;
+}
+.ts-tip {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(10,14,20,0.92); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 10px; font-size: 12px; font-family: var(--mono);
+  pointer-events: none;
+}
+.ts-tip em { display: block; color: var(--muted); font-style: normal; font-size: 10.5px; margin-top: 3px; }
+.ts-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+.ts-legend span { display: flex; align-items: center; gap: 5px; }
+.ts-legend i { width: 14px; height: 8px; border-radius: 2px; }
+.picker .spacer { flex: 1; }
+
+.ts-window { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ts-window span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.ts-window button { padding: 3px 9px; font-size: 11px; font-family: var(--mono); }
+.ts-window input[type=range] { flex: 1; min-width: 140px; }
+.ts-window b { font-family: var(--mono); font-size: 11.5px; min-width: 92px; text-align: right; }

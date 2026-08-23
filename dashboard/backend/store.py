@@ -61,7 +61,8 @@ class Store:
         import cv2
         import sys
         sys.path.insert(0, str(ROOT))
-        from vtrack import telemetry as tele, network as netmod, aggregate as agg
+        from vtrack import (telemetry as tele, network as netmod,
+                            aggregate as agg, trafficflow as tflow)
         from vtrack.georef import GeoReference
 
         cap = cv2.VideoCapture(str(self.video_path))
@@ -82,6 +83,7 @@ class Store:
         self.geo = GeoReference.from_telemetry(entries) if entries else None
         self.net = netmod.build(self.moving, self.geo, frame_wh=(self.W, self.H))
         self._build_insights(agg, netmod)
+        self._build_flow(tflow)
         self.ready = True
 
     # ------------------------------------------------- per-frame overlay index
@@ -168,6 +170,30 @@ class Store:
                 "duration_s": round(self.n_frames / self.fps, 1),
             },
         }
+
+    # ---------------------------------------------------- pNEUMA-style analysis
+    def _build_flow(self, tflow):
+        """Time-space diagrams, per-lane Edie measures, lane changes.
+
+        Computed once at startup like the other aggregates. The time-space
+        payload is the largest thing the API serves after the video, so
+        trajectories are sampled down rather than sent at full frame rate.
+        """
+        mv, fps, N = self.moving, self.fps, self.net
+        self.flow = {"time_space": {}, "edie": {}, "validity": {}}
+        for (o, d) in list(N.corridors.keys()):
+            key = f"{o}->{d}"
+            ts = tflow.time_space(mv, N, o, d, fps, sample_hz=3.0)
+            if ts:
+                self.flow["time_space"][key] = ts
+            e = tflow.edie(mv, N, o, d, fps)
+            if len(e):
+                keep = e[e["lane"].between(-3, 2)]
+                self.flow["edie"][key] = json.loads(keep.to_json(orient="records"))
+                self.flow["validity"][key] = tflow.fd_validity(e)
+        lanes = tflow.assign_lanes(mv, N, fps)
+        lc = tflow.lane_change_summary(mv, lanes, fps)
+        self.flow["lane_changes"] = json.loads(lc.to_json(orient="records")) if len(lc) else []
 
     # ------------------------------------------------------------------ misc
     def meta(self) -> Meta:

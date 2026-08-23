@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import VideoStage from "@/components/VideoStage";
 import Insights from "@/components/Insights";
 import JobConsole from "@/components/JobConsole";
+import TimeSpace from "@/components/TimeSpace";
 import { getJSON, MODES, MODE_COLOR } from "@/lib/api";
 
 // Leaflet reaches for `window` at import time, so the map never server-renders.
@@ -13,11 +14,13 @@ const MapPanel = dynamic(() => import("@/components/MapPanel"), {
   loading: () => <div className="mapload">loading map…</div>,
 });
 
-const TABS = ["Video", "Map", "Insights", "Pipeline"];
+const TABS = ["Video", "Map", "Insights", "Flow", "Pipeline"];
 
 export default function Page() {
   const [meta, setMeta] = useState(null);
   const [insights, setInsights] = useState(null);
+  const [flow, setFlow] = useState(null);
+  const [seekTo, setSeekTo] = useState(null);
   const [err, setErr] = useState(null);
   const [tab, setTab] = useState("Video");
   const [selectedId, setSelectedId] = useState(null);
@@ -38,6 +41,7 @@ export default function Page() {
         }
         setMeta(await getJSON("/api/meta"));
         setInsights(await getJSON("/api/insights"));
+        getJSON("/api/flow").then(setFlow).catch(() => setFlow(null));
       } catch (e) {
         setErr(String(e.message || e));
       }
@@ -135,12 +139,23 @@ export default function Page() {
         <div className="content">
           <div style={{ display: tab === "Video" ? "block" : "none" }}>
             <VideoStage
-              meta={meta} filters={filters}
+              meta={meta} filters={filters} seekTo={seekTo}
               onSelect={setSelectedId} selectedId={selectedId}
             />
           </div>
           {tab === "Map" && <MapPanel selectedTrack={selectedTrack} />}
           {tab === "Insights" && <Insights data={insights} />}
+          {tab === "Flow" && (
+            flow ? (
+              <TimeSpace
+                corridors={Object.keys(flow.validity || {})}
+                validity={flow.validity}
+                busiest={(insights.od || []).length
+                  ? `${insights.od[0].origin}->${insights.od[0].destination}` : null}
+                onSeek={(t, id) => { setSeekTo({ t, at: Date.now() }); setSelectedId(id); setTab("Video"); }}
+              />
+            ) : <div className="mapload">loading flow analysis…</div>
+          )}
           {tab === "Pipeline" && <JobConsole />}
         </div>
       </div>
