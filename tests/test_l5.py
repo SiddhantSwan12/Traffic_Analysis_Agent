@@ -280,12 +280,142 @@ def test_desire():
           f"{d2.iloc[0]['straddle_expected_by_chance']:.2f}" if len(d2) else "")
 
 
+# ==================================================== improved estimators (L5+)
+def test_rankine_hugoniot():
+    print("\n[shockwave: Rankine-Hugoniot]")
+    from vtrack import reasoning2 as R2
+
+    # Two cells either side of a front, with q and k chosen so the jump
+    # condition has an answer that can be worked out by hand:
+    #   u = (q2-q1)/(k2-k1) = (600-1800)/(90-30) = -20 km/h = -5.56 m/s
+    e = pd.DataFrame({
+        "segment": [0, 1], "interval": [0, 0], "lane": [0, 0],
+        "flow_veh_per_h": [1800.0, 600.0],
+        "density_veh_per_km": [30.0, 90.0],
+        "speed_kmh": [60.0, 6.7],
+        "segment_start_m": [0.0, 50.0], "interval_start_s": [0.0, 0.0],
+        "n_vehicles": [8, 8],
+    })
+    r = R2.shockwave_rankine_hugoniot(e, min_pairs=1)
+    check("the jump condition is evaluated across the front",
+          r.get("median_mps") is not None, r.get("note"))
+    if r.get("median_mps") is not None:
+        check("it matches the hand calculation (-5.56 m/s)",
+              abs(r["median_mps"] + 5.56) < 0.2, f"{r['median_mps']} m/s")
+        check("direction is reported as upstream", r["direction"] == "upstream")
+        check("the q and k it reasoned from are attached",
+              bool(r.get("evidence")) and "k_up" in r["evidence"][0])
+
+    same = e.copy()
+    same["speed_kmh"] = [60.0, 60.0]           # no front at all
+    r2 = R2.shockwave_rankine_hugoniot(same, min_pairs=1)
+    check("no front means no shockwave is claimed",
+          r2.get("median_mps") is None, r2.get("note"))
+
+
+def test_signal_periodicity():
+    print("\n[signal: periodicity and complementarity]")
+    from vtrack import reasoning2 as R2
+
+    ids, times, tid = [], [], 5000
+    for cycle in range(8):
+        for k in range(16):
+            times.append(cycle * 60.0 + k * 1.8)
+            ids.append(tid); tid += 1
+    s = R2.signal_periodicity(_stream(ids, times), FakeNet(), "A", "B", FPS)
+    check("a 60 s cycle is detected by autocorrelation",
+          s.get("signalised") is True, s.get("note"))
+    if s.get("signalised"):
+        check("the recovered cycle length is near 60 s",
+              abs(s["cycle_length_s"] - 60.0) < 8.0, f"{s['cycle_length_s']} s")
+
+    rng = np.random.default_rng(11)
+    t = np.sort(rng.uniform(0, 480, 220))
+    s2 = R2.signal_periodicity(_stream(list(range(6000, 6220)), list(t)),
+                               FakeNet(), "A", "B", FPS)
+    check("Poisson arrivals are NOT called periodic",
+          s2.get("signalised") is False,
+          f"prominence {s2.get('peak_prominence')} vs {s2.get('prominence_threshold')}")
+
+
+def test_raff():
+    print("\n[critical gap: Raff's method]")
+    from vtrack.reasoning2 import raff_critical_gap
+    rng = np.random.default_rng(5)
+    # accepted ~ U(3,10), rejected ~ U(0,5) cross where (t-3)/7 = (5-t)/5,
+    # i.e. at t = 50/12 = 4.17 s
+    acc = rng.uniform(3, 10, 4000)
+    rej = rng.uniform(0, 5, 4000)
+    r = raff_critical_gap(acc, rej)
+    check("Raff returns a critical gap", r.get("critical_gap_s") is not None,
+          r.get("note"))
+    if r.get("critical_gap_s") is not None:
+        check("it matches the analytic crossing at 4.17 s",
+              abs(r["critical_gap_s"] - 4.17) < 0.35, f"{r['critical_gap_s']} s")
+    check("too little data yields no estimate, not a guess",
+          raff_critical_gap(acc[:3], rej[:3]).get("critical_gap_s") is None)
+    # disjoint distributions never cross, and that must be said rather than faked
+    r3 = raff_critical_gap(rng.uniform(20, 30, 500), rng.uniform(0, 1, 500))
+    check("non-overlapping distributions report no crossing",
+          r3.get("critical_gap_s") is None, r3.get("note"))
+
+
+def test_lane_structure():
+    print("\n[lane structure from behaviour]")
+    from vtrack import reasoning2 as R2
+
+    class Net3:
+        corridors = {("A", "B"): np.array([[0.0, 60.0], [200.0, 60.0]])}
+        movements = pd.DataFrame(
+            {"origin": ["A"] * 40, "destination": ["B"] * 40, "turn": ["through"] * 40},
+            index=range(1, 41))
+
+    def build(offsets):
+        veh, nn = [], int(16 * FPS)
+        for i, off in enumerate(offsets, start=1):
+            X = np.linspace(0, 200, nn)
+            Y = np.full(nn, 60.0) + off
+            px, py = CAL.to_image(X, Y)
+            veh.append(pd.DataFrame({
+                "frame": np.arange(nn), "track_id": i, "display_id": i,
+                "mode": "car", "cls_name": "car", "conf": 0.9,
+                "world_x_m": X, "world_y_m": Y, "cx": px, "cy": py,
+                "x1": px - 22, "y1": py - 18, "x2": px + 22, "y2": py + 18,
+                "velocity_x_mps": 12.0, "velocity_y_mps": 0.0, "speed_kmh": 43.0,
+                "parked": False, "interpolated": False}))
+        return pd.concat(veh, ignore_index=True)
+
+    rng = np.random.default_rng(2)
+    # three lanes 3.2 m apart, drivers holding them
+    lanes = np.array([-3.2, 0.0, 3.2])[rng.integers(0, 3, 40)] + rng.normal(0, 0.25, 40)
+    d1 = R2.lane_structure(build(lanes), Net3())
+    check("three separated lanes are recognised as lane structure",
+          len(d1) and d1.iloc[0]["lane_structure"] == "clear",
+          f"{d1.iloc[0]['lane_structure']}, {d1.iloc[0]['n_modes']} modes at "
+          f"{d1.iloc[0]['observed_lane_spacing_m']} m" if len(d1) else "no rows")
+    if len(d1):
+        check("the observed spacing is close to the real 3.2 m",
+              d1.iloc[0]["observed_lane_spacing_m"] is not None
+              and abs(d1.iloc[0]["observed_lane_spacing_m"] - 3.2) < 0.9,
+              f"{d1.iloc[0]['observed_lane_spacing_m']} m")
+
+    # one tight band: concentrated, but NOT lane-separated
+    d2 = R2.lane_structure(build(rng.normal(0, 0.5, 40)), Net3())
+    check("a single tight band is not mistaken for lane structure",
+          len(d2) and d2.iloc[0]["lane_structure"] == "single undifferentiated stream",
+          d2.iloc[0]["lane_structure"] if len(d2) else "no rows")
+
+
 if __name__ == "__main__":
     test_congestion()
     test_shockwave_direction()
     test_signal()
     test_obstructions()
     test_desire()
+    test_rankine_hugoniot()
+    test_signal_periodicity()
+    test_raff()
+    test_lane_structure()
     print("\n" + "=" * 62)
     if FAILS:
         print(f"{len(FAILS)} FAILED:")
