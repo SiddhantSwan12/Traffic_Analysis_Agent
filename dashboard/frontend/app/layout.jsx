@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Traffic Insight",
-  description: "Drone traffic detection, tracking and network analysis",
+  title: "FlytBase Traffic Intelligence",
+  description: "Professional traffic operations and network analytics dashboard",
 };
 
 export default function RootLayout({ children }) {

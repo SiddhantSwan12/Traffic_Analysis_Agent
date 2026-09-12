@@ -69,25 +69,26 @@ export const SPEED_STOPS = [
 ];
 
 export const CHART = {
-  grid: "#222a36",
-  axis: "#8a94a6",
-  surface: "#151a23",
-  surfaceDeep: "#0b0f16",
-  ink: "#e2e8f0",
-  muted: "#8a94a6",
-  fontSize: 11,
+  grid: "rgba(148, 163, 184, 0.12)",
+  axis: "#778497",
+  surface: "#101721",
+  surfaceDeep: "#080d14",
+  ink: "#f1f5fa",
+  muted: "#929fb0",
+  fontSize: 10,
 };
 
 /** Recharts axis props, so every chart shares one look. */
 export const AXIS = { stroke: CHART.axis, fontSize: CHART.fontSize, tickLine: false };
 
 export const TOOLTIP_STYLE = {
-  background: "#0f141c",
+  background: "rgba(8, 13, 20, 0.94)",
   border: `1px solid ${CHART.grid}`,
-  borderRadius: 8,
-  fontSize: 12,
-  padding: "8px 10px",
-  boxShadow: "0 6px 20px rgba(0,0,0,.45)",
+  borderRadius: 10,
+  fontSize: 11,
+  padding: "9px 11px",
+  boxShadow: "0 14px 36px rgba(0,0,0,.42)",
+  backdropFilter: "blur(16px)",
 };
 
 /** 4 px rounded data-end, anchored to the baseline. */
