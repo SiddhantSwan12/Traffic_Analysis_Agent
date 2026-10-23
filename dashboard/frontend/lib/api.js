@@ -7,6 +7,9 @@ export { MODES, MODE_COLOR } from "./viz";
 export const STATE = ["moving", "temporarily_stopped", "parked", "unknown"];
 
 export async function getJSON(path) {
+  if (process.env.NEXT_PUBLIC_RESULTS_ONLY === "1" && path.startsWith("/api/flow/timespace/")) {
+    path = "/api/flow/timespace/" + decodeURIComponent(path.split("/").pop()).replaceAll("->", "--");
+  }
   const r = await fetch(path);
   if (!r.ok) throw new Error(`${path} -> ${r.status}`);
   return r.json();

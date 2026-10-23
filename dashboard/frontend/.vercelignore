@@ -1,0 +1,4 @@
+public/data/
+public/video.mp4
+.next/
+.env*.local

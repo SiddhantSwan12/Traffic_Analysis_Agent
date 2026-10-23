@@ -1,0 +1,4 @@
+{
+  "framework": "nextjs",
+  "env": { "NEXT_PUBLIC_RESULTS_ONLY": "1" }
+}

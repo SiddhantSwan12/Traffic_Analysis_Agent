@@ -24,7 +24,7 @@ const TABS = [
   { id: "Flow", label: "Traffic flow", icon: "flow", description: "Follow trajectories through time" },
   { id: "Reasoning", label: "Findings", icon: "findings", description: "Evidence-backed network findings" },
   { id: "Pipeline", label: "Pipeline", icon: "pipeline", description: "Run and monitor processing" },
-];
+].filter((item) => process.env.NEXT_PUBLIC_RESULTS_ONLY !== "1" || item.id !== "Pipeline");
 
 export default function Page() {
   const [meta, setMeta] = useState(null);

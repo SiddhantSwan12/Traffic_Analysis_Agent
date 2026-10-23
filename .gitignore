@@ -20,3 +20,6 @@ __pycache__/
 # dashboard
 dashboard/frontend/node_modules/
 dashboard/frontend/.next/
+dashboard/frontend/public/data/
+dashboard/frontend/.vercel/
+dashboard-results.tar.gz
